@@ -1,45 +1,50 @@
-#!/bin/bash
+#!/bin/bash -i
 
 
 #ls -F | grep "tidb/" | cut -d'/' -f1 | xargs -I z sh -c '
-#       echo "Sync running for dir: " z ;
-#       cd z;
-#       if [ "master" == $(git remote show origin | awk '"'"'/HEAD branch/ {print $NF}'"'"') ]; then gh repo sync yogeshdhawale/z -b master; fi;
-#       if [ "main" == $(git remote show origin | awk '"'"'/HEAD branch/ {print $NF}'"'"') ]; then gh repo sync yogeshdhawale/z -b main; fi;
-#       gh repo sync;
-#       cd ..;
-#       ' \
+#	echo "Sync running for dir: " z ;
+#	cd z;
+#	if [ "master" == $(git remote show origin | awk '"'"'/HEAD branch/ {print $NF}'"'"') ]; then gh repo sync yogeshdhawale/z -b master; fi;
+#	if [ "main" == $(git remote show origin | awk '"'"'/HEAD branch/ {print $NF}'"'"') ]; then gh repo sync yogeshdhawale/z -b main; fi;
+#	gh repo sync;
+#	cd ..; 
+#	' \
 
+if [ $# -ne 1 ]; then
+	echo "Provide directory string pattern. e.g. \"*/\""
+	exit
+fi
 
+dir_pattern=$1
 
-for dir in $(ls -d t*/)
+for dir in $(ls -d $dir_pattern)
 do
-        z=${dir%*/}
+	z=${dir%*/}
 
-        if [ $z == "1Notes" ]; then
-                continue
-        fi
+	skip_dirs=" 1Notes demo "
 
-        echo "Sync running for dir: " $z ;
-        cd $z
+	if [[ " $skip_dirs " =~ "$z" ]] ; then
+		echo "Skipping dir $z"
+		continue
+	fi
 
-        branch=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+	echo "Sync running for dir: " $z ;
+	cd $z;
 
-        if [ "" == "$branch" ] ; then
-                gh repo sync
-                continue;
-        fi
+	branch=$(git remote show origin | awk '/HEAD branch/ {print $NF}');
+	#echo "Branch is " $branch;
 
-        if [ "master" == "$branch" ]; then
-                gh repo sync yogeshdhawale/$z -b master;
-        fi
+	if [ "" == "$branch" ] ; then
+		gh repo sync;
+		cd ..;
+		continue;
+	fi
 
-        if [ "main" == "$branch" ]; then
-                gh repo sync yogeshdhawale/$z -b main;
-        fi
+	git remote | grep upstream && gh repo sync yogeshdhawale/$z -b $branch;
+	gh repo sync;
 
-        gh repo sync
-        cd ..
+	cd ..
 done
 
-echo "  ---     Done, exited.   ---";
+echo "	---	Done, exited.	---";
+
